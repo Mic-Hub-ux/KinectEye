@@ -19,9 +19,9 @@ The project enables **local visualization**, **motor control**, and **remote vid
 
 ---
 ## Hardware required
-**Kinect V1**
-**Linux computer**
-**Kinect AC Adapter with USB supply** available on: [Amazon](https://www.amazon.it/dp/B0776NDZJ6?ref=ppx_yo2ov_dt_b_fed_asin_title)
+**Kinect V1** <br>
+**Linux computer** <br>
+**Kinect AC Adapter with USB supply** available on: [Amazon](https://www.amazon.it/dp/B0776NDZJ6?ref=ppx_yo2ov_dt_b_fed_asin_title) <br>
 
 ---
 ## Installation & First Run
