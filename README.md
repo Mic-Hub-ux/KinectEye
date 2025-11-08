@@ -1,5 +1,4 @@
 # KinectEye
-# Kinect V1 Remote Surveillance System (Linux + Python)
 
 This repository contains the full setup and implementation of a **remote surveillance system** using a **Microsoft Kinect V1** sensor connected to a **Linux (Lubuntu 24.04)** computer.  
 The project enables **local visualization**, **motor control**, and **remote video streaming** via a lightweight Python Flask server.
