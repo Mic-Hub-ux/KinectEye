@@ -24,5 +24,6 @@ The project enables **local visualization**, **motor control**, and **remote vid
 
 ---
 For the detailed installation procedure → [setup/setup_instructions.md](setup/setup_instructions.md)
+<br>
 For basic commands available after installation → [setup/basic_commands.md](setup/basic_commands.md)
 
