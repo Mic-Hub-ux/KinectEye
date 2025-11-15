@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controllo Kinect</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 1200px;
+        }
+
+        #video {
+            width: 48%;
+            height: auto;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+        }
+
+        .control-panel {
+            width: 48%;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider {
+            width: 100%;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 25px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 30%;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .value-display {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .button-container button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Controllo Kinect</h1>
+
+    <div class="container">
+        <!-- Flusso Video -->
+        <div>
+            <h2>Video in Diretta</h2>
+            <img id="video" src="{{ url_for('video_feed') }}" alt="Kinect Video Feed">
+        </div>
+        
+        <!-- Pannello di Controllo -->
+        <div class="control-panel">
+            <h3>Controllo Tilt (Alza, Abbassa, Reset)</h3>
+
+            <!-- Bottoni per il controllo del tilt -->
+            <div class="button-container">
+                <button onclick="setTilt('up')">Alza</button>
+                <button onclick="setTilt('down')">Abbassa</button>
+                <button onclick="setTilt('reset')">Resetta</button>
+            </div>
+
+            <h3>Cambia Modalità Video</h3>
+            <div class="button-container">
+                <button onclick="changeMode('ir')">Modalità IR</button>
+                <button onclick="changeMode('rgb')">Modalità RGB</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Funzione per aggiornare il tilt
+        function setTilt(action) {
+            let tiltAction = action;
+            fetch('/set_tilt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'tilt=' + tiltAction
+            });
+        }
+
+        // Funzione per cambiare la modalità video
+        function changeMode(mode) {
+            fetch('/mode_' + mode)
+                .then(response => {
+                    console.log(mode + " mode activated.");
+                });
+        }
+    </script>
+</body>
+</html>
