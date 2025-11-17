@@ -13,7 +13,7 @@ The **Kinect streaming system** allows capturing the video feed from the Kinect 
 To start the video streaming server, run the following Python script:
 
 ```bash
-python3 app.py
+python3 app_onlyStreaming.py
 ```
 Then open a web browser and enter:
 ```bash
