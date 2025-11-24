@@ -19,5 +19,9 @@ Then open a web browser and enter:
 ```bash
 http://localhost:5000
 ```
+If you want to see the video streaming on another device (you must be connected to the same network):
+```bash
+http://192.168.1.18:5000
+```
 Note:
 This script currently includes only Video Streaming — motor control and depth/RGB support are not yet implemented.
