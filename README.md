@@ -27,4 +27,4 @@ For the detailed installation procedure → [setup/setup_instructions.md](setup/
 <br>
 For basic commands available after installation → [setup/basic_commands.md](setup/basic_commands.md)
 <br>
-For the first implementations (?) → [kinect_streaming/streaming.md](kinect_streaming/streaming.md)
+For the web streaming app (video, tilt, RGB/IR/depth) → [kinect_streaming/README.md](kinect_streaming/README.md)
