@@ -3,150 +3,514 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b0f14">
     <title>KinectEye</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2322d3ee'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%230b0f14'/%3E%3C/svg%3E">
     <style>
         :root {
-            --bg: #f4f4f9;
-            --card: #fff;
-            --text: #222;
-            --muted: #666;
-            --accent: #2e7d32;
-            --accent-hover: #256628;
-            --border: #ddd;
+            --bg: #0b0f14;
+            --bg-glow: rgba(34, 211, 238, 0.08);
+            --panel: rgba(255, 255, 255, 0.04);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --text: #e6edf3;
+            --muted: #8b98a5;
+            --accent: #22d3ee;
+            --accent-soft: rgba(34, 211, 238, 0.15);
+            --live: #ef4444;
+            --ok: #22c55e;
+            --radius: 16px;
+            --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
         }
-        @media (prefers-color-scheme: dark) {
+        @media (prefers-color-scheme: light) {
             :root {
-                --bg: #121212;
-                --card: #1e1e1e;
-                --text: #eee;
-                --muted: #999;
-                --border: #333;
+                --bg: #f3f5f8;
+                --bg-glow: rgba(8, 145, 178, 0.10);
+                --panel: #ffffff;
+                --panel-border: rgba(15, 23, 42, 0.08);
+                --text: #0f172a;
+                --muted: #64748b;
+                --accent: #0891b2;
+                --accent-soft: rgba(8, 145, 178, 0.12);
             }
         }
+
         * { box-sizing: border-box; }
+        html, body { margin: 0; }
         body {
-            font-family: system-ui, Arial, sans-serif;
-            background: var(--bg);
+            min-height: 100vh;
+            font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
             color: var(--text);
-            margin: 0;
-            padding: 16px;
+            background:
+                radial-gradient(1200px 600px at 10% -10%, var(--bg-glow), transparent 60%),
+                radial-gradient(900px 500px at 110% 110%, var(--bg-glow), transparent 60%),
+                var(--bg);
+            padding: 20px 16px 32px;
         }
-        h1 { margin: 0 0 16px; font-size: 28px; text-align: center; }
-        .container {
+        button { font: inherit; color: inherit; }
+
+        /* ---------- Header ---------- */
+        header {
+            max-width: 1280px;
+            margin: 0 auto 20px;
             display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            max-width: 1200px;
-            margin: 0 auto;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
         }
-        .video-wrap { flex: 2 1 480px; }
-        #video {
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .logo {
+            width: 40px; height: 40px;
+            border-radius: 12px;
+            display: grid; place-items: center;
+            background: linear-gradient(135deg, var(--accent), #6366f1);
+            box-shadow: 0 6px 24px var(--accent-soft);
+        }
+        .logo svg { width: 22px; height: 22px; }
+        .brand h1 { margin: 0; font-size: 20px; letter-spacing: 0.02em; }
+        .brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+
+        .pill {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            white-space: nowrap;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+        .pill.online .dot { background: var(--ok); box-shadow: 0 0 0 0 var(--ok); animation: pulse 2s infinite; }
+        .pill.offline .dot { background: var(--live); }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+            70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* ---------- Layout ---------- */
+        main {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            gap: 20px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            main { grid-template-columns: minmax(0, 1fr); }
+        }
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius);
+            backdrop-filter: blur(12px);
+        }
+
+        /* ---------- Video ---------- */
+        .viewer { position: relative; overflow: hidden; padding: 0; background: #000; }
+        .viewer img {
+            display: block;
             width: 100%;
             aspect-ratio: 4 / 3;
             object-fit: contain;
             background: #000;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            display: block;
+            color: transparent; /* hide alt text while the stream loads */
         }
-        .control-panel {
-            flex: 1 1 260px;
-            background: var(--card);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        h3 { margin: 0 0 10px; }
-        .button-container { display: flex; gap: 8px; margin-bottom: 20px; }
-        button {
-            flex: 1;
-            padding: 12px 8px;
-            background: var(--accent);
+        .hud {
+            position: absolute; inset: 0;
+            pointer-events: none;
+            font-family: var(--mono);
+            font-size: 12px;
             color: #fff;
-            border: none;
-            font-size: 16px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        .hud .corner { position: absolute; width: 28px; height: 28px; border: 2px solid rgba(255, 255, 255, 0.55); }
+        .hud .tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; border-top-left-radius: 6px; }
+        .hud .tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; border-top-right-radius: 6px; }
+        .hud .bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; border-bottom-left-radius: 6px; }
+        .hud .br { bottom: 14px; right: 14px; border-left: 0; border-top: 0; border-bottom-right-radius: 6px; }
+        .hud .row { position: absolute; left: 24px; right: 24px; display: flex; justify-content: space-between; align-items: center; }
+        .hud .top { top: 22px; }
+        .hud .bottom { bottom: 22px; }
+        .tag {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 8px;
             border-radius: 6px;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(4px);
+        }
+        .rec { width: 8px; height: 8px; border-radius: 50%; background: var(--live); animation: blink 1.2s steps(2, start) infinite; }
+        @keyframes blink { to { visibility: hidden; } }
+
+        .nosignal {
+            position: absolute; inset: 0;
+            display: none;
+            flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+            color: #cbd5e1;
+            background:
+                repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 4px),
+                radial-gradient(circle at center, #1e293b, #020617);
+            text-align: center;
+            padding: 20px;
+        }
+        .nosignal strong { font-family: var(--mono); letter-spacing: 0.3em; font-size: 18px; }
+        .nosignal span { font-size: 13px; color: #94a3b8; }
+        .viewer.offline .nosignal { display: flex; }
+        .viewer.offline .rec { display: none; }
+
+        .toolbar {
+            position: absolute; right: 16px; bottom: 56px;
+            display: flex; gap: 8px;
+            opacity: 0; transform: translateY(6px);
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .viewer:hover .toolbar, .viewer:focus-within .toolbar { opacity: 1; transform: none; }
+        @media (hover: none) { .toolbar { opacity: 1; transform: none; } }
+        .icon-btn {
+            width: 40px; height: 40px;
+            display: grid; place-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(6px);
+            color: #fff;
             cursor: pointer;
         }
-        button:hover { background: var(--accent-hover); }
-        button:disabled { opacity: 0.5; cursor: default; }
-        button.active { outline: 3px solid #ffb300; }
-        .value { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-        #status { color: var(--muted); font-size: 14px; }
-        #status.error { color: #e53935; }
+        .icon-btn:hover { background: rgba(0, 0, 0, 0.75); }
+        .icon-btn svg { width: 18px; height: 18px; }
+
+        /* ---------- Side panel ---------- */
+        aside { display: flex; flex-direction: column; gap: 16px; }
+        aside .card { padding: 18px; }
+        .card h2 {
+            margin: 0 0 14px;
+            font-size: 12px; font-weight: 600;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--muted);
+            display: flex; justify-content: space-between; align-items: baseline;
+        }
+        .card h2 kbd { font-family: var(--mono); text-transform: none; letter-spacing: 0; }
+
+        /* Tilt gauge */
+        .gauge { display: flex; align-items: center; gap: 16px; }
+        .gauge svg { width: 140px; height: 120px; flex: none; }
+        .gauge .needle { transition: transform 0.6s cubic-bezier(.2, .8, .2, 1); transform-origin: 20px 60px; }
+        .angle { font-family: var(--mono); font-size: 36px; font-weight: 700; line-height: 1; }
+        .angle small { font-size: 16px; color: var(--muted); }
+        .range { margin-top: 6px; font-size: 12px; color: var(--muted); }
+
+        .tilt-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 16px; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 12px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+            background: var(--panel);
+            font-weight: 600; font-size: 14px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, transform 0.08s;
+        }
+        .btn:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+        .btn:active:not(:disabled) { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .btn svg { width: 16px; height: 16px; }
+
+        /* Mode selector */
+        .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .mode {
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            padding: 14px 6px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+            background: var(--panel);
+            cursor: pointer;
+            font-size: 13px; font-weight: 600;
+            transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+        }
+        .mode:hover { border-color: var(--accent); }
+        .mode.active {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            box-shadow: 0 0 0 1px var(--accent) inset;
+        }
+        .mode.pending { opacity: 0.6; }
+        .swatch { width: 100%; height: 6px; border-radius: 3px; }
+        .swatch.rgb { background: linear-gradient(90deg, #ef4444, #22c55e, #3b82f6); }
+        .swatch.ir { background: linear-gradient(90deg, #111, #eee); }
+        .swatch.depth { background: linear-gradient(90deg, #ef4444, #facc15, #22d3ee, #1e3a8a); }
+
+        /* Stats */
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat { padding: 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--panel-border); }
+        .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+        .stat .value { margin-top: 4px; font-family: var(--mono); font-size: 18px; font-weight: 700; }
+        .message { margin-top: 12px; font-size: 13px; color: var(--live); }
+        .message:empty { display: none; }
+
+        .shortcuts { font-size: 12px; color: var(--muted); line-height: 1.9; }
+        kbd {
+            font-family: var(--mono); font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 5px;
+            border: 1px solid var(--panel-border);
+            border-bottom-width: 2px;
+            background: var(--panel);
+            color: var(--text);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed; left: 50%; bottom: 24px;
+            transform: translate(-50%, 20px);
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.92);
+            color: #fff; font-size: 14px;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            max-width: calc(100% - 32px);
+        }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+        }
     </style>
 </head>
 <body>
-    <h1>KinectEye</h1>
+    <header>
+        <div class="brand">
+            <div class="logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#0b0f14" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+            </div>
+            <div>
+                <h1>KinectEye</h1>
+                <p>Kinect V1 live monitor</p>
+            </div>
+        </div>
+        <div id="conn" class="pill"><span class="dot"></span><span id="conn-text">CONNECTING</span></div>
+    </header>
 
-    <div class="container">
-        <div class="video-wrap">
+    <main>
+        <section id="viewer" class="card viewer">
             <img id="video" src="{{ url_for('video_feed') }}" alt="Kinect live video">
-        </div>
 
-        <div class="control-panel">
-            <h3>Tilt</h3>
-            <div class="value">Angle: <span id="tilt">0</span>°</div>
-            <div class="button-container">
-                <button data-tilt="up">▲ Up</button>
-                <button data-tilt="down">▼ Down</button>
-                <button data-tilt="reset">Reset</button>
+            <div class="hud" aria-hidden="true">
+                <div class="corner tl"></div><div class="corner tr"></div>
+                <div class="corner bl"></div><div class="corner br"></div>
+                <div class="row top">
+                    <span class="tag"><span class="rec"></span>LIVE · <span id="hud-mode">RGB</span></span>
+                    <span class="tag" id="hud-clock">--:--:--</span>
+                </div>
+                <div class="row bottom">
+                    <span class="tag">TILT <span id="hud-tilt">0°</span></span>
+                    <span class="tag"><span id="hud-fps">0</span> FPS</span>
+                </div>
             </div>
 
-            <h3>Video mode</h3>
-            <div class="button-container">
-                <button data-mode="rgb">RGB</button>
-                <button data-mode="ir">IR</button>
-                <button data-mode="depth">Depth</button>
+            <div class="nosignal">
+                <strong>NO SIGNAL</strong>
+                <span id="nosignal-msg">Waiting for the Kinect...</span>
             </div>
 
-            <div id="status">Connecting...</div>
-        </div>
-    </div>
+            <div class="toolbar">
+                <button class="icon-btn" id="snapshot" title="Save snapshot (S)" aria-label="Save snapshot">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </button>
+                <button class="icon-btn" id="fullscreen" title="Fullscreen (F)" aria-label="Fullscreen">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                </button>
+            </div>
+        </section>
+
+        <aside>
+            <div class="card">
+                <h2>Tilt <kbd>↑ ↓ R</kbd></h2>
+                <div class="gauge">
+                    <svg viewBox="0 0 140 120" aria-hidden="true">
+                        <!-- range arc from +27° (top) to -27° (bottom) around the pivot -->
+                        <path d="M 20 60 L 109.4 14.5 A 100 100 0 0 1 109.4 105.5 Z" fill="var(--accent-soft)"/>
+                        <path d="M 109.4 14.5 A 100 100 0 0 1 109.4 105.5" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="3 4"/>
+                        <line x1="20" y1="60" x2="120" y2="60" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 4"/>
+                        <g class="needle" id="needle">
+                            <line x1="20" y1="60" x2="104" y2="60" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+                            <rect x="70" y="50" width="34" height="20" rx="5" fill="var(--text)"/>
+                            <circle cx="96" cy="60" r="4.5" fill="var(--bg)"/>
+                            <circle cx="80" cy="60" r="3" fill="var(--bg)"/>
+                        </g>
+                        <circle cx="20" cy="60" r="6" fill="var(--accent)"/>
+                    </svg>
+                    <div>
+                        <div class="angle"><span id="tilt">0</span><small>°</small></div>
+                        <div class="range">range <span id="tilt-range">−27° … +27°</span></div>
+                    </div>
+                </div>
+                <div class="tilt-controls">
+                    <button class="btn" data-tilt="up" title="Tilt up (↑)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>Up
+                    </button>
+                    <button class="btn" data-tilt="down" title="Tilt down (↓)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>Down
+                    </button>
+                    <button class="btn" data-tilt="reset" title="Back to 0° (R)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Reset
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Video mode <kbd>1 2 3</kbd></h2>
+                <div class="modes">
+                    <button class="mode" data-mode="rgb"><span class="swatch rgb"></span>Color</button>
+                    <button class="mode" data-mode="ir"><span class="swatch ir"></span>Infrared</button>
+                    <button class="mode" data-mode="depth"><span class="swatch depth"></span>Depth</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Status</h2>
+                <div class="stats">
+                    <div class="stat"><div class="label">Frame rate</div><div class="value"><span id="fps">0</span> fps</div></div>
+                    <div class="stat"><div class="label">Mode</div><div class="value" id="mode">—</div></div>
+                </div>
+                <div class="message" id="message"></div>
+            </div>
+
+            <div class="card shortcuts">
+                <kbd>↑</kbd> <kbd>↓</kbd> tilt &nbsp; <kbd>R</kbd> reset &nbsp; <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> mode<br>
+                <kbd>S</kbd> snapshot &nbsp; <kbd>F</kbd> fullscreen
+            </div>
+        </aside>
+    </main>
+
+    <div class="toast" id="toast" role="status"></div>
 
     <script>
-        const statusEl = document.getElementById('status');
+        const $ = id => document.getElementById(id);
+        const MODE_NAMES = { rgb: 'Color', ir: 'Infrared', depth: 'Depth' };
+        const MODE_KEYS = { '1': 'rgb', '2': 'ir', '3': 'depth' };
+        let state = null;
+        let pendingMode = null;
+
+        function toast(text) {
+            const t = $('toast');
+            t.textContent = text;
+            t.classList.add('show');
+            clearTimeout(toast.timer);
+            toast.timer = setTimeout(() => t.classList.remove('show'), 1800);
+        }
 
         function render(s) {
-            document.getElementById('tilt').textContent = s.tilt;
-            document.querySelectorAll('[data-mode]').forEach(b =>
-                b.classList.toggle('active', b.dataset.mode === s.mode));
+            state = s;
+            if (pendingMode === s.mode) pendingMode = null;
+            const mode = pendingMode || s.mode;
+
+            $('tilt').textContent = (s.tilt > 0 ? '+' : '') + s.tilt;
+            $('hud-tilt').textContent = (s.tilt > 0 ? '+' : '') + s.tilt + '°';
+            $('tilt-range').textContent = `${s.tilt_min}° … +${s.tilt_max}°`;
+            $('needle').style.transform = `rotate(${-s.tilt}deg)`;
             document.querySelector('[data-tilt="up"]').disabled = s.tilt >= s.tilt_max;
             document.querySelector('[data-tilt="down"]').disabled = s.tilt <= s.tilt_min;
-            statusEl.classList.toggle('error', !s.connected);
-            statusEl.textContent = s.connected ? `Connected · ${s.fps} fps` : s.error;
-        }
+            document.querySelector('[data-tilt="reset"]').disabled = s.tilt === 0;
 
-        async function post(url, body) {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+            document.querySelectorAll('[data-mode]').forEach(b => {
+                b.classList.toggle('active', b.dataset.mode === mode);
+                b.classList.toggle('pending', b.dataset.mode === pendingMode);
             });
-            render(await res.json());
+            $('mode').textContent = MODE_NAMES[mode];
+            $('hud-mode').textContent = MODE_NAMES[mode].toUpperCase();
+            $('fps').textContent = s.fps;
+            $('hud-fps').textContent = Math.round(s.fps);
+
+            setOnline(s.connected, s.error);
         }
 
-        async function refresh() {
+        function setOnline(online, error) {
+            $('conn').className = 'pill ' + (online ? 'online' : 'offline');
+            $('conn-text').textContent = online ? 'ONLINE' : 'OFFLINE';
+            $('viewer').classList.toggle('offline', !online);
+            $('nosignal-msg').textContent = error || 'Waiting for the Kinect...';
+            $('message').textContent = online ? '' : (error || '');
+        }
+
+        async function api(url, body) {
             try {
-                render(await (await fetch('/api/status')).json());
-            } catch {
-                statusEl.classList.add('error');
-                statusEl.textContent = 'Server not reachable';
+                const res = await fetch(url, body && {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || res.statusText);
+                render(data);
+            } catch (err) {
+                setOnline(false, 'Server not reachable');
             }
         }
 
-        document.querySelectorAll('[data-tilt]').forEach(b =>
-            b.addEventListener('click', () => post('/api/tilt', { action: b.dataset.tilt })));
-        document.querySelectorAll('[data-mode]').forEach(b =>
-            b.addEventListener('click', () => post('/api/mode', { mode: b.dataset.mode })));
+        function tilt(action) {
+            if (state && action === 'up' && state.tilt >= state.tilt_max) return;
+            if (state && action === 'down' && state.tilt <= state.tilt_min) return;
+            api('/api/tilt', { action });
+        }
+
+        function setMode(mode) {
+            if (!state || mode === (pendingMode || state.mode)) return;
+            pendingMode = mode;
+            api('/api/mode', { mode });
+            toast(MODE_NAMES[mode] + ' mode');
+        }
+
+        function snapshot() {
+            const img = $('video');
+            if (!img.naturalWidth) return toast('No frame to save');
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            const link = document.createElement('a');
+            link.download = `kinecteye-${stamp}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.92);
+            link.click();
+            toast('Snapshot saved');
+        }
+
+        function fullscreen() {
+            const el = $('viewer');
+            if (document.fullscreenElement) document.exitFullscreen();
+            else if (el.requestFullscreen) el.requestFullscreen();
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        }
+
+        document.querySelectorAll('[data-tilt]').forEach(b => b.addEventListener('click', () => tilt(b.dataset.tilt)));
+        document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+        $('snapshot').addEventListener('click', snapshot);
+        $('fullscreen').addEventListener('click', fullscreen);
+
+        document.addEventListener('keydown', e => {
+            if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+            const key = e.key.toLowerCase();
+            if (key === 'arrowup') { e.preventDefault(); tilt('up'); }
+            else if (key === 'arrowdown') { e.preventDefault(); tilt('down'); }
+            else if (key === 'r') tilt('reset');
+            else if (key === 's') snapshot();
+            else if (key === 'f') fullscreen();
+            else if (MODE_KEYS[key]) setMode(MODE_KEYS[key]);
+        });
 
         // Reload the stream if it drops (e.g. server restarted).
-        const video = document.getElementById('video');
+        const video = $('video');
         video.addEventListener('error', () =>
             setTimeout(() => { video.src = '/video_feed?t=' + Date.now(); }, 2000));
 
-        refresh();
-        setInterval(refresh, 2000);
+        const tick = () => { $('hud-clock').textContent = new Date().toLocaleTimeString(); };
+        tick();
+        setInterval(tick, 1000);
+        api('/api/status');
+        setInterval(() => api('/api/status'), 2000);
     </script>
 </body>
 </html>
