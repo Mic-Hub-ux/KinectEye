@@ -3,137 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controllo Kinect</title>
+    <title>KinectEye</title>
     <style>
+        :root {
+            --bg: #f4f4f9;
+            --card: #fff;
+            --text: #222;
+            --muted: #666;
+            --accent: #2e7d32;
+            --accent-hover: #256628;
+            --border: #ddd;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #121212;
+                --card: #1e1e1e;
+                --text: #eee;
+                --muted: #999;
+                --border: #333;
+            }
+        }
+        * { box-sizing: border-box; }
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f4f9;
+            font-family: system-ui, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            flex-direction: column;
+            padding: 16px;
         }
-
-        h1 {
-            color: #333;
-            font-size: 36px;
-            margin-bottom: 20px;
-        }
-
+        h1 { margin: 0 0 16px; font-size: 28px; text-align: center; }
         .container {
             display: flex;
-            justify-content: space-between;
-            width: 90%;
+            flex-wrap: wrap;
+            gap: 16px;
             max-width: 1200px;
+            margin: 0 auto;
         }
-
+        .video-wrap { flex: 2 1 480px; }
         #video {
-            width: 48%;
-            height: auto;
-            border: 2px solid #ddd;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            object-fit: contain;
+            background: #000;
+            border: 2px solid var(--border);
             border-radius: 10px;
+            display: block;
         }
-
         .control-panel {
-            width: 48%;
-            background-color: #fff;
+            flex: 1 1 260px;
+            background: var(--card);
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-
-        .slider {
-            width: 100%;
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-
-        .button-container {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-
+        h3 { margin: 0 0 10px; }
+        .button-container { display: flex; gap: 8px; margin-bottom: 20px; }
         button {
-            padding: 12px 25px;
-            background-color: #4CAF50;
-            color: white;
+            flex: 1;
+            padding: 12px 8px;
+            background: var(--accent);
+            color: #fff;
             border: none;
             font-size: 16px;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            width: 30%;
         }
-
-        button:hover {
-            background-color: #45a049;
-        }
-
-        .value-display {
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 10px;
-            margin-bottom: 10px;
-        }
-
-        .button-container button {
-            margin: 5px;
-        }
+        button:hover { background: var(--accent-hover); }
+        button:disabled { opacity: 0.5; cursor: default; }
+        button.active { outline: 3px solid #ffb300; }
+        .value { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        #status { color: var(--muted); font-size: 14px; }
+        #status.error { color: #e53935; }
     </style>
 </head>
 <body>
-    <h1>Controllo Kinect</h1>
+    <h1>KinectEye</h1>
 
     <div class="container">
-        <!-- Flusso Video -->
-        <div>
-            <h2>Video in Diretta</h2>
-            <img id="video" src="{{ url_for('video_feed') }}" alt="Kinect Video Feed">
+        <div class="video-wrap">
+            <img id="video" src="{{ url_for('video_feed') }}" alt="Kinect live video">
         </div>
-        
-        <!-- Pannello di Controllo -->
+
         <div class="control-panel">
-            <h3>Controllo Tilt (Alza, Abbassa, Reset)</h3>
-
-            <!-- Bottoni per il controllo del tilt -->
+            <h3>Tilt</h3>
+            <div class="value">Angle: <span id="tilt">0</span>°</div>
             <div class="button-container">
-                <button onclick="setTilt('up')">Alza</button>
-                <button onclick="setTilt('down')">Abbassa</button>
-                <button onclick="setTilt('reset')">Resetta</button>
+                <button data-tilt="up">▲ Up</button>
+                <button data-tilt="down">▼ Down</button>
+                <button data-tilt="reset">Reset</button>
             </div>
 
-            <h3>Cambia Modalità Video</h3>
+            <h3>Video mode</h3>
             <div class="button-container">
-                <button onclick="changeMode('ir')">Modalità IR</button>
-                <button onclick="changeMode('rgb')">Modalità RGB</button>
+                <button data-mode="rgb">RGB</button>
+                <button data-mode="ir">IR</button>
+                <button data-mode="depth">Depth</button>
             </div>
+
+            <div id="status">Connecting...</div>
         </div>
     </div>
 
     <script>
-        // Funzione per aggiornare il tilt
-        function setTilt(action) {
-            let tiltAction = action;
-            fetch('/set_tilt', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'tilt=' + tiltAction
-            });
+        const statusEl = document.getElementById('status');
+
+        function render(s) {
+            document.getElementById('tilt').textContent = s.tilt;
+            document.querySelectorAll('[data-mode]').forEach(b =>
+                b.classList.toggle('active', b.dataset.mode === s.mode));
+            document.querySelector('[data-tilt="up"]').disabled = s.tilt >= s.tilt_max;
+            document.querySelector('[data-tilt="down"]').disabled = s.tilt <= s.tilt_min;
+            statusEl.classList.toggle('error', !s.connected);
+            statusEl.textContent = s.connected ? `Connected · ${s.fps} fps` : s.error;
         }
 
-        // Funzione per cambiare la modalità video
-        function changeMode(mode) {
-            fetch('/mode_' + mode)
-                .then(response => {
-                    console.log(mode + " mode activated.");
-                });
+        async function post(url, body) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            render(await res.json());
         }
+
+        async function refresh() {
+            try {
+                render(await (await fetch('/api/status')).json());
+            } catch {
+                statusEl.classList.add('error');
+                statusEl.textContent = 'Server not reachable';
+            }
+        }
+
+        document.querySelectorAll('[data-tilt]').forEach(b =>
+            b.addEventListener('click', () => post('/api/tilt', { action: b.dataset.tilt })));
+        document.querySelectorAll('[data-mode]').forEach(b =>
+            b.addEventListener('click', () => post('/api/mode', { mode: b.dataset.mode })));
+
+        // Reload the stream if it drops (e.g. server restarted).
+        const video = document.getElementById('video');
+        video.addEventListener('error', () =>
+            setTimeout(() => { video.src = '/video_feed?t=' + Date.now(); }, 2000));
+
+        refresh();
+        setInterval(refresh, 2000);
     </script>
 </body>
 </html>
