@@ -1,0 +1,5 @@
+flask>=3.0
+numpy>=1.26
+opencv-python-headless>=4.8
+# The freenect Python binding is not on PyPI in a usable form:
+# it is built from libfreenect sources by setup/install.sh
